@@ -17,6 +17,7 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'booking' => \App\Http\Middleware\BookingContext::class,
             'booking.locale' => \App\Http\Middleware\SetBookingLocale::class,
             'booking.client' => \App\Http\Middleware\EnsureUserIsBookingClient::class,
+            'api.booking.store' => \App\Http\Middleware\ResolveApiBookingStore::class,
         ]);
 
         $middleware->redirectGuestsTo(function (Request $request) {
@@ -70,6 +72,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // API da app móvel: erros sempre em JSON, mesmo sem cabeçalho Accept.
+        $exceptions->shouldRenderJsonWhen(
+            fn (Request $request, Throwable $e): bool => $request->is('api/*') || $request->expectsJson()
+        );
+
         $exceptions->reportable(function (Throwable $e): void {
             app(ExceptionReportService::class)->report($e);
         });
@@ -103,7 +110,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            if ($request->expectsJson()) {
+            if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
                     'message' => config('errors.user_message'),
                     'reference' => ExceptionReportService::currentReference(),

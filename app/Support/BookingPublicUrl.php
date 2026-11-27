@@ -77,6 +77,7 @@ final class BookingPublicUrl
             'favicon.ico',
             'robots.txt',
             'up',
+            'api',
             'livewire',
             'stripe',
             'legal',
